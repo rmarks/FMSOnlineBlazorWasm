@@ -1,0 +1,46 @@
+﻿@page "/companies"
+@inject CompanyRepository Repo
+
+<MudText Class="my-5 ml-2" Typo="Typo.h5">Firmad</MudText>
+
+<MudTable Items="_companies" Hover="true">
+    <ColGroup>
+        <col style="width: 40%" />
+        <col style="width: 30%" />
+        <col style="width: 30%" />
+    </ColGroup>
+    <HeaderContent>
+        <MudTh>Nimi</MudTh>
+        <MudTh>Linn</MudTh>
+        <MudTh>Riik</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.CompanyName</MudTd>
+        <MudTd>@context.City</MudTd>
+        <MudTd>@context.Country</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <div class="d-flex justify-center">
+            <MudPagination Class="pa-4" Count="_pageCount" @bind-Selected="_page" @bind-Selected:after="LoadData" />
+        </div>
+    </PagerContent>
+</MudTable>
+
+@code {
+    private IEnumerable<CompanyListItemModel> _companies = Enumerable.Empty<CompanyListItemModel>();
+    private int _page = 1;
+    private int _pageSize = 10;
+    private int _pageCount;
+
+    protected override void OnInitialized()
+    {
+        LoadData();
+    }
+
+    private void LoadData()
+    {
+        var result = Repo.GetPagedList(_page, _pageSize);
+        _companies = result.List;
+        _pageCount = result.PageCount;
+    }
+}
