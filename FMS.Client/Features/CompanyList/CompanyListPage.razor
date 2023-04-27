@@ -4,6 +4,11 @@
 <MudText Class="my-5 ml-2" Typo="Typo.h5">Firmad</MudText>
 
 <MudTable Items="_companies" Hover="true">
+    <ToolBarContent>
+        <MudSpacer />
+        <MudTextField Class="mt-0" @bind-Value="_searchString" @bind-Value:after="LoadData" Placeholder="Otsi nime järgi..." 
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
+    </ToolBarContent>
     <ColGroup>
         <col style="width: 40%" />
         <col style="width: 30%" />
@@ -31,6 +36,7 @@
     private int _page = 1;
     private int _pageSize = 10;
     private int _pageCount;
+    private string _searchString = "";
 
     protected override void OnInitialized()
     {
@@ -39,7 +45,7 @@
 
     private void LoadData()
     {
-        var result = Repo.GetPagedList(_page, _pageSize);
+        var result = Repo.GetPagedList(_searchString, _page, _pageSize);
         _companies = result.List;
         _pageCount = result.PageCount;
     }

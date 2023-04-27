@@ -21,15 +21,17 @@ public class CompanyRepository
             new CompanyListItemModel("Kullast süda", "Eesti", "Rakvere"),
         });
 
-    public (List<CompanyListItemModel> List, int PageCount) GetPagedList(int page, int pageSize)
+    public (List<CompanyListItemModel> List, int PageCount) GetPagedList(string searchString, int page, int pageSize)
     {
-        var list = _companies
+        var query = _companies
+            .Where(c => c.CompanyName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
+
+        int pageCount = (int)Math.Ceiling((decimal)query.Count() / pageSize);
+
+        query = query
             .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
+            .Take(pageSize);
 
-        int pageCount = (int)Math.Ceiling((decimal)_companies.Count / pageSize);
-
-        return (list, pageCount);
+        return (query.ToList(), pageCount);
     }
 }
