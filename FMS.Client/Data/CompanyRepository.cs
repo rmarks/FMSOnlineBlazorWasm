@@ -21,7 +21,7 @@ public class CompanyRepository
             new CompanyListItemModel("Kullast süda", "Eesti", "Rakvere"),
         });
 
-    public (List<CompanyListItemModel> List, int PageCount) GetPagedList(string searchString, int page, int pageSize)
+    public CompanyListModel GetPagedList(string searchString, int page, int pageSize)
     {
         var query = _companies
             .Where(c => c.CompanyName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
@@ -32,6 +32,6 @@ public class CompanyRepository
             .Skip((page - 1) * pageSize)
             .Take(pageSize);
 
-        return (query.ToList(), pageCount);
+        return new CompanyListModel { PagedList = query.ToList(), PageCount = pageCount };
     }
 }

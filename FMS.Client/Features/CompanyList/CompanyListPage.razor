@@ -1,12 +1,14 @@
 ﻿@page "/companies"
-@inject CompanyRepository Repo
+@*@inject CompanyRepository Repo*@
+@inject HttpClient Http
+@inject NavigationManager NavManager
 
 <MudText Class="my-5 ml-2" Typo="Typo.h5">Firmad</MudText>
 
 <MudTable Items="_companies" Hover="true">
     <ToolBarContent>
         <MudSpacer />
-        <MudTextField Class="mt-0" @bind-Value="_searchString" @bind-Value:after="LoadData" Placeholder="Otsi nime järgi..." 
+        <MudTextField Class="mt-0" @bind-Value="_searchString" @bind-Value:after="LoadData" Placeholder="Otsi nime järgi..."
                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
     </ToolBarContent>
     <ColGroup>
@@ -38,15 +40,27 @@
     private int _pageCount;
     private string _searchString = "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        LoadData();
+        await LoadData();
     }
 
-    private void LoadData()
+    private async Task LoadData()
     {
-        var result = Repo.GetPagedList(_searchString, _page, _pageSize);
-        _companies = result.List;
+        //var listModel = Repo.GetPagedList(_searchString, _page, _pageSize);
+
+        var uriWithQuerystring = NavManager.GetUriWithQueryParameters("api/companylist", new Dictionary<string, object?>
+            {
+                ["searchstring"] = string.IsNullOrWhiteSpace(_searchString) ? null : _searchString,
+                ["page"] = _page,
+                ["pageSize"] = _pageSize
+            });
+
+        var result = await Http.GetFromJsonAsync<CompanyListModel>(uriWithQuerystring);
+
+        if (result is null) throw new NullReferenceException();
+
+        _companies = result.PagedList;
         _pageCount = result.PageCount;
     }
 }
