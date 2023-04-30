@@ -12,8 +12,14 @@ builder.Services.AddMudServices();
 builder.Services.AddSingleton<CompanyRepository>();
 
 //builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-//builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7272") });
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://fmsonlineapi.azurewebsites.net") });
+if (builder.HostEnvironment.IsProduction())
+{
+    builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://fmsonlineapi.azurewebsites.net") });
+}
+else
+{
+    builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7272") });
+}
 
 Console.WriteLine($"Current Environment: {builder.HostEnvironment.Environment}");
 
