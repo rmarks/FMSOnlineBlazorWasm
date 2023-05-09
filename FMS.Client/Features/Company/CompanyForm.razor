@@ -1,0 +1,58 @@
+﻿<EditForm Model="_company" OnValidSubmit="SubmitForm">
+    <FluentValidationValidator />
+
+    <MudGrid>
+        <MudItem xs="6">
+            <div class="pa-4">
+                <MudTextField Label="Nimi" @bind-Value="_company.Name" ReadOnly="InViewMode" For="@(() => _company.Name)" />
+                <div class="d-flex gap-4 mt-3">
+                    <MudTextField Label="Reg. Nr." @bind-Value="_company.RegNo" ReadOnly="InViewMode" For="@(() => _company.RegNo)" />
+                    <MudTextField Label="KM Nr." @bind-Value="_company.VATNo" ReadOnly="InViewMode" For="@(() => _company.VATNo)" />
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="6">
+            <div class="pa-4">
+                <MudTextField Label="Tarnetingimus" @bind-Value="_company.DeliveryTermName" ReadOnly="InViewMode" For="@(() => _company.DeliveryTermName)" />
+                <div class="d-flex gap-4 mt-3">
+                    <MudNumericField Label="Makseaeg" @bind-Value="_company.PaymentDays" ReadOnly="InViewMode" For="@(() => _company.PaymentDays)" />
+                    <MudNumericField Label="Püsiallahindlus" @bind-Value="_company.FixedDiscountPercent" ReadOnly="InViewMode" For="@(() => _company.FixedDiscountPercent)" />
+                    <MudCheckBox Label="Käibemaks" @bind-Checked="_company.IsVAT" ReadOnly="InViewMode" />
+                </div>
+            </div>
+        </MudItem>
+        @if (InEditMode)
+        {
+            <MudItem xs="12">
+                <MudCardActions>
+                    <MudButton Class="ml-auto mr-2" ButtonType="ButtonType.Button" Variant="Variant.Filled" @onclick="CancelEdit">Katkesta</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Salvesta</MudButton>
+                </MudCardActions>
+            </MudItem>
+        }
+    </MudGrid>
+</EditForm>
+
+
+@code {
+    private CompanyModel _company = default!;
+
+    [Parameter, EditorRequired] public CompanyModel Company { get; set; } = default!;
+    [Parameter, EditorRequired] public EventCallback<CompanyModel> OnSubmit { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnCancel { get; set; }
+    [Parameter] public bool InEditMode { get; set; }
+
+    private bool InViewMode => !InEditMode;
+    private bool IsNew => _company.Id == 0;
+
+    protected override void OnParametersSet()
+    {
+        _company = Company.GetCopy();
+    }
+
+    #region event handlers
+    private void CancelEdit() => OnCancel.InvokeAsync();
+
+    private void SubmitForm() => OnSubmit.InvokeAsync(_company);
+    #endregion
+}

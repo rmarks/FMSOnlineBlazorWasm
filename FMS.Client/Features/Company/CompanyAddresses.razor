@@ -1,0 +1,103 @@
+﻿@inject CompanyRepository Repo
+@inject IDialogService DialogService
+
+<MudDataGrid Items="_addresses" Striped="true" SortMode="SortMode.None">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6" Color="Color.Info">Aadressid</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Add" OnClick="() => EditAddress()" Title="Lisa uus" />
+    </ToolBarContent>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2">Aadressid puuduvad.</MudText>
+    </NoRecordsContent>
+    <ColGroup>
+        <col style="width:20%;" />
+        <col style="width:50%;" />
+        <col style="width:30%;" />
+        <col style="width:50px;" />
+    </ColGroup>
+    <Columns>
+        <PropertyColumn Property="x => x.CompanyAddressTypeName" Title="Aadressi tüüp" />
+        <PropertyColumn Property="x => x.FullAddress" Title="Aadress" />
+        <PropertyColumn Property="x => x.Description" Title="Kirjeldus" />
+        <TemplateColumn CellClass="d-flex justify-space-between">
+            <CellTemplate>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="() => DeleteAddress(context.Item.Id)" Title="Kustuta" />
+                <MudIconButton Class="ml-4" Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="() => EditAddress(context.Item.Id)" Title="Muuda" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+
+@code {
+    private IList<CompanyAddressListItemModel> _addresses = new List<CompanyAddressListItemModel>();
+
+    [Parameter, EditorRequired] public int CompanyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CompanyId > 0)
+        {
+            await LoadData();
+        }
+    }
+
+    #region event handlers
+    private async Task EditAddress(int id = 0)
+    {
+        CompanyAddressModel address = id == 0 
+            ? new CompanyAddressModel() 
+            : Repo.GetAddressById(id) ?? throw new ArgumentException($"Address with id:{id} not found.");
+
+        var parameters = new DialogParameters();
+        parameters.Add("Address", address);
+        var result = await DialogService.Show<CompanyAddressFormDialog>("", parameters).Result;
+        if (result.Canceled) return;
+
+        var addressAfterEdit = (CompanyAddressModel)result.Data;
+        addressAfterEdit.CopyTo(address);
+
+        SaveAddress(address);
+        await LoadData();
+    }
+
+    private async Task DeleteAddress(int id)
+    {
+        bool? result = await DialogService.ShowMessageBox("Kustutamine", "Kas kustutame aadressi?", yesText: "Kustuta", cancelText: "Katkesta");
+
+        if (result is not null)
+        {
+            if (Repo.DeleteAddress(id))
+            {
+                await LoadData();
+            }
+        }
+    }
+    #endregion
+
+    #region helpers
+    private async Task LoadData()
+    {
+        await Task.Delay(1);
+        _addresses = Repo.GetAddressesByCompanyId(CompanyId);
+    }
+
+    private void SaveAddress(CompanyAddressModel address)
+    {
+        if (address.Id == 0)
+        {
+            address.CompanyId = CompanyId;
+            address.Id = Repo.AddAddress(address);
+        }
+        else
+        {
+            bool success = Repo.UpdateAddress(address);
+            if (!success)
+            {
+                throw new Exception("Failed to save address.");
+            }
+        }
+    }
+    #endregion
+}

@@ -1,12 +1,13 @@
 ﻿@page "/companies"
-@*@inject CompanyRepository Repo*@
+@inject CompanyRepository Repo
 @inject HttpClient Http
 @inject NavigationManager NavManager
 
 <MudText Class="my-5 ml-2" Typo="Typo.h5">Firmad</MudText>
 
-<MudTable Items="_companies" Hover="true">
+<MudTable Items="_companies" Hover="true" Loading="_loading" OnRowClick="ViewCompany" T="CompanyListItemModel">
     <ToolBarContent>
+        <MudIconButton Icon="@Icons.Material.Filled.Add" OnClick="AddCompany" />
         <MudSpacer />
         <MudTextField Class="mt-0" @bind-Value="_searchString" @bind-Value:after="LoadData" Placeholder="Otsi nime järgi..."
                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
@@ -22,9 +23,9 @@
         <MudTh>Riik</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd>@context.CompanyName</MudTd>
-        <MudTd>@context.City</MudTd>
-        <MudTd>@context.Country</MudTd>
+        <MudTd Class="cursor-pointer">@context.CompanyName</MudTd>
+        <MudTd Class="cursor-pointer">@context.City</MudTd>
+        <MudTd Class="cursor-pointer">@context.Country</MudTd>
     </RowTemplate>
     <PagerContent>
         <div class="d-flex justify-center">
@@ -39,16 +40,36 @@
     private int _pageSize = 10;
     private int _pageCount;
     private string _searchString = "";
+    private bool _loading;
 
     protected override async Task OnInitializedAsync()
     {
+        _loading = true;
         await LoadData();
+        _loading = false;
     }
 
+    #region event handlers
+    private void ViewCompany(TableRowClickEventArgs<CompanyListItemModel> args)
+    {
+        NavManager.NavigateTo($"companies/{args.Item.Id}");
+    }
+
+    private void AddCompany()
+    {
+        NavManager.NavigateTo($"companies/add");
+    }
+    #endregion
+
+    #region helpers
     private async Task LoadData()
     {
-        //var listModel = Repo.GetPagedList(_searchString, _page, _pageSize);
+        //await LoadDataFromApi();
+        await LoadDataFromRepo();
+    }
 
+    private async Task LoadDataFromApi()
+    {
         var uriWithQuerystring = NavManager.GetUriWithQueryParameters("api/companylist", new Dictionary<string, object?>
             {
                 ["searchstring"] = string.IsNullOrWhiteSpace(_searchString) ? null : _searchString,
@@ -63,4 +84,14 @@
         _companies = result.PagedList;
         _pageCount = result.PageCount;
     }
+
+    private async Task LoadDataFromRepo()
+    {
+        await Task.Delay(1);
+
+        var listModel = Repo.GetPagedList(_searchString, _page, _pageSize);
+        _companies = listModel.PagedList;
+        _pageCount = listModel.PageCount;
+    }
+    #endregion
 }

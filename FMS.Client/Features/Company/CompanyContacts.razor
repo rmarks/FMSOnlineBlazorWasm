@@ -1,0 +1,161 @@
+﻿@inject CompanyRepository Repo
+@inject IDialogService DialogService
+
+<MudTable @ref="_mudTable" Items="_contacts" Striped="true" Loading="_isLoading"
+          EditTrigger="TableEditTrigger.EditButton" EditButtonPosition="TableEditButtonPosition.End"
+          CanCancelEdit="true" IsEditRowSwitchingBlocked="true" CancelEditTooltip="Katkesta" CommitEditTooltip="Salvesta"
+          RowEditPreview="BackupItem" RowEditCancel="ResetItem" RowEditCommit="CommitItem">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6" Color="Color.Info">Kontaktid</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Add" OnClick="AddItem" Disabled="_isInRowEditMode" Title="Lisa uus" />
+    </ToolBarContent>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2">Kontaktid puuduvad.</MudText>
+    </NoRecordsContent>
+    <ColGroup>
+        <col style="width:30%;" />
+        <col style="width:20%;" />
+        <col style="width:10%;" />
+        <col style="width:10%;" />
+        <col style="width:30%;" />
+        <col style="width:50px;" />
+        <col style="width:50px;" />
+    </ColGroup>
+    <HeaderContent>
+        <MudTh>Nimi</MudTh>
+        <MudTh>Amet</MudTh>
+        <MudTh>Mobiil</MudTh>
+        <MudTh>Lauatelefon</MudTh>
+        <MudTh>E-post</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Name</MudTd>
+        <MudTd>@context.Job</MudTd>
+        <MudTd>@context.Mobile</MudTd>
+        <MudTd>@context.Phone</MudTd>
+        <MudTd>@context.Email</MudTd>
+        <MudTd>
+            <MudIconButton Class="pa-0" Icon="@Icons.Material.Outlined.Delete" Size="@Size.Small" OnClick="() => DeleteItem(context)"
+                           Disabled="_isInRowEditMode" Title="Kustuta" />
+        </MudTd>
+    </RowTemplate>
+    <RowEditingTemplate>
+        <MudTd>
+            <MudTextField @bind-Value="context.Name" Required="true" RequiredError="Sisesta nimi" />
+        </MudTd>
+        <MudTd>
+            <MudTextField @bind-Value="context.Job" Required="true" RequiredError="Sisesta amet" />
+        </MudTd>
+        <MudTd>
+            <MudTextField @bind-Value="context.Mobile" Required="true" RequiredError="Sisesta mobiil" />
+        </MudTd>
+        <MudTd>
+            <MudTextField @bind-Value="context.Phone" />
+        </MudTd>
+        <MudTd>
+            <MudTextField @bind-Value="context.Email" />
+        </MudTd>
+    </RowEditingTemplate>
+    <EditButtonContent Context="button">
+        <MudIconButton Class="pa-0" Icon="@Icons.Material.Outlined.Edit" Size="@Size.Small" OnClick="@button.ButtonAction"
+                       Disabled="@button.ButtonDisabled" Title="Muuda" />
+    </EditButtonContent>
+</MudTable>
+
+@code {
+    private IList<CompanyContactModel> _contacts = new List<CompanyContactModel>();
+    private MudTable<CompanyContactModel> _mudTable = default!;
+    private bool _isInRowEditMode;
+    private CompanyContactModel? _itemBeforeEdit;
+    private bool _isLoading;
+
+    [Parameter, EditorRequired] public int CompanyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CompanyId > 0)
+        {
+            _isLoading = true;
+            await LoadData();
+            _isLoading = false;
+        }
+    }
+
+    #region event handlers
+    private void BackupItem(object item)
+    {
+        _itemBeforeEdit = ((CompanyContactModel)item).GetCopy();
+
+        _isInRowEditMode = true;
+        StateHasChanged();
+    }
+
+    private void ResetItem(object item)
+    {
+        var model = (CompanyContactModel)item;
+        if (model.Id == 0)
+        {
+            _contacts.Remove(model);
+        }
+        else
+        {
+            _itemBeforeEdit!.CopyTo(model);
+        }
+
+        _isInRowEditMode = false;
+        StateHasChanged();
+    }
+
+    private void CommitItem(object item)
+    {
+        var model = (CompanyContactModel)item;
+        if (model.Id == 0)
+        {
+            model.CompanyId = this.CompanyId;
+            model.Id = Repo.AddContact(model);
+        }
+        else
+        {
+            Repo.UpdateContact(model);
+        }
+
+        _isInRowEditMode = false;
+        StateHasChanged();
+    }
+
+    private async Task AddItem()
+    {
+        CompanyContactModel newItem = new();
+        _contacts.Add(newItem);
+
+        await Task.Delay(50);
+        _mudTable!.SetSelectedItem(newItem);
+        _mudTable!.SetEditingItem(newItem);
+
+        _isInRowEditMode = true;
+    }
+
+    private async Task DeleteItem(CompanyContactModel item)
+    {
+        bool? result = await DialogService.ShowMessageBox("Kustutamine", "Kas kustutame kontakti?", yesText: "Kustuta", cancelText: "Katkesta");
+
+        if (result is not null)
+        {
+            if (Repo.DeleteContact(item.Id))
+            {
+                _contacts.Remove(item);
+            }
+        }
+    }
+    #endregion
+
+    #region helpers
+    private async Task LoadData()
+    {
+        await Task.Delay(1);
+        _contacts = Repo.GetContactsByCompanyId(CompanyId);
+    }
+    #endregion
+}

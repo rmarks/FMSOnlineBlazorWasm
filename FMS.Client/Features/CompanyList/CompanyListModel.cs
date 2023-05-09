@@ -6,4 +6,4 @@ public class CompanyListModel
     public int PageCount { get; set; }
 }
 
-public record CompanyListItemModel(string CompanyName, string Country, string City);
+public record CompanyListItemModel(int Id, string CompanyName, string Country, string City);

@@ -1,0 +1,147 @@
+﻿@page "/companies/{Id:int}"
+@page "/companies/add"
+@inject NavigationManager NavManager
+@inject CompanyRepository Repo
+@inject IDialogService DialogService
+
+<MudStack Class="mt-5 mb-10" Spacing="5">
+
+    <MudPaper>
+        <MudToolBar>
+            <MudText Typo="Typo.h6">@Title</MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Outlined.Delete" @onclick="DeleteCompany" Disabled="_isInEditMode" Class="mr-10" />
+            <MudIconButton Icon="@Icons.Material.Outlined.Close" @onclick="@(() => NavManager.NavigateTo("/companies"))" Disabled="_isInEditMode" />
+        </MudToolBar>
+    </MudPaper>
+
+    @if (_isLoading)
+    {
+        <p>Laen firma andmeid...</p>
+    }
+    else
+    {
+        <MudPaper>
+            <MudToolBar>
+                <MudText Typo="Typo.h6" Color="Color.Info">Põhiandmed</MudText>
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Outlined.Edit" @onclick="SetEditMode" Disabled="_isInEditMode" />
+            </MudToolBar>
+
+            <CompanyForm Company="_company" OnCancel="HandleCancel" OnSubmit="HandleSubmit" InEditMode="_isInEditMode" />
+        </MudPaper>
+
+        <CompanyAddresses CompanyId="_company.Id" />
+
+        <CompanyContacts CompanyId="_company.Id" />
+    }
+
+</MudStack>
+
+@code {
+    private CompanyModel _company = new();
+    private bool _isLoading;
+    private bool _isInEditMode;
+
+    [Parameter] public int Id { get; set; }
+
+    private bool IsNew => _company.Id == 0;
+    private string Title => $"{(IsNew ? "Uus firma" : _company.Name)}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+
+        if (Id == 0)
+        {
+            _isInEditMode = true;
+        }
+        else
+        {
+            await LoadCompany();
+        }
+
+        _isLoading = false;
+    }
+
+    #region event handlers
+    private void SetEditMode() => _isInEditMode = true;
+
+    private void HandleCancel()
+    {
+        if (IsNew)
+        {
+            NavManager.NavigateTo("companies");
+        }
+        else
+        {
+            _isInEditMode = false;
+        }
+    }
+
+    private async Task HandleSubmit(CompanyModel company)
+    {
+        if (company.Id == 0)
+        {
+            await AddCompany(company);
+        }
+        else
+        {
+            await UpdateCompany(company);
+        }
+
+        _isInEditMode = false;
+    }
+
+    private async Task DeleteCompany()
+    {
+        bool? result = await DialogService.ShowMessageBox("Kustutamine", "Kas kustutame firma?", yesText: "Kustuta", cancelText: "Katkesta");
+
+        if (result is not null)
+        {
+            await Task.Delay(1);
+            Repo.DeleteCompany(_company.Id);
+
+            NavManager.NavigateTo("companies");
+        }
+    }
+    #endregion
+
+    #region helpers
+    private async Task LoadCompany()
+    {
+        //local
+        await Task.Delay(1);
+        _company = Repo.GetCompany(Id) ?? throw new ArgumentException($"Company with id:{Id} not found.");
+
+        //api
+    }
+
+    private async Task AddCompany(CompanyModel company)
+    {
+        //local
+        await Task.Delay(1);
+        company.Id = Repo.AddCompany(company);
+        company.CopyTo(_company);
+
+        //api
+    }
+
+    private async Task UpdateCompany(CompanyModel company)
+    {
+        //local
+        await Task.Delay(1);
+        bool wasSuccess = Repo.UpdateCompany(company);
+        if (wasSuccess)
+        {
+            company.CopyTo(_company);
+        }
+        else
+        {
+            throw new Exception("Failed to save company");
+        }
+
+        //api
+    }
+    #endregion
+}

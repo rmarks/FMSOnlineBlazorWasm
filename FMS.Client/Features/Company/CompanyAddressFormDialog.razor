@@ -1,0 +1,64 @@
+﻿@inject CompanyRepository Repo
+
+<EditForm Model="@_address" OnValidSubmit="Submit">
+    <FluentValidationValidator />
+
+    <MudDialog DefaultFocus="@DefaultFocus">
+        <DialogContent>
+            <MudStack Spacing="6">
+                <MudSelect T="int?" @bind-Value="_address.CompanyAddressTypeId"
+                           Label="Aadressi tüüp" Variant="Variant.Outlined" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter"
+                           For="@(() => _address.CompanyAddressTypeId)" >
+                    @foreach (var item in _addressTypes)
+                    {
+                        <MudSelectItem T="int?" Value="@item.Id">@item.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_address.Country" Label="Riik" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              For="@(() => _address.Country)" />
+                <MudTextField @bind-Value="_address.County" Label="Maakond" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_address.City" Label="Linn" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              For="@(() => _address.City)" />
+                <MudTextField @bind-Value="_address.Address" Label="Aadress" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              For="@(() => _address.Address)" />
+                <MudTextField @bind-Value="_address.PostCode" Label="Indeks" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_address.Description" Label="Kirjeldus" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton ButtonType="ButtonType.Button" Variant="Variant.Filled" @onclick="Cancel">Katkesta (Esc)</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Salvesta</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private CompanyAddressModel _address = default!;
+    private IEnumerable<CompanyAddressTypeModel> _addressTypes = Enumerable.Empty<CompanyAddressTypeModel>();
+
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter, EditorRequired] public CompanyAddressModel Address { get; set; } = default!;
+
+    private bool IsNew => _address.Id == 0;
+    //private DefaultFocus DefaultFocus => IsNew ? DefaultFocus.FirstChild : DefaultFocus.Element;
+    private DefaultFocus DefaultFocus => DefaultFocus.Element;
+
+    protected override void OnInitialized()
+    {
+        _address = Address.GetCopy();
+
+        string title = _address.Id == 0 ? "Uus aadress" : "Muuda aadressi";
+        MudDialog.SetTitle(title);
+        MudDialog.Options.DisableBackdropClick = true;
+        MudDialog.Options.MaxWidth = MaxWidth.Small;
+        MudDialog.Options.FullWidth = true;
+        MudDialog.Options.CloseOnEscapeKey = true;
+        MudDialog.SetOptions(MudDialog.Options);
+
+        _addressTypes = Repo.GetAllAddressTypes();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_address));
+}
